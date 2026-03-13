@@ -25,3 +25,4 @@ pipeline {
     }
 }
 EOF
+echo "// Trigger new build to fix cache issue - $(date)" >> /root/devops-demo/Jenkinsfile
