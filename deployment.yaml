@@ -1,0 +1,32 @@
+apiVersion: apps/v1  #告诉 K8s，“我这份订单是用 apps/v1 这个版本的格式写的，请按这个版本的规则来读。
+kind: Deployment    #告诉 K8s，“我要创建一个 Deployment（部署）
+metadata:
+  name: devops-app   #给这个部署起个名字叫 devops-app。 #以后你想修改它、删除它、查看它，都要喊这个名字：kubectl get deployment devops-app                                    
+spec:    #规格说明 后面跟着的都是具体的要求细节
+  replicas: 1   #副本数量
+  selector:   #选择器/标签匹配
+    matchLabels:  #Deployment 和 Pod 之间的“暗号”。意思是：“所有带着 app: devops-app 标签的容器，都归我（这个 Deployment）管
+      app: devops-app
+  template:  #模板下面是定义“具体要生成的容器长什么样”的蓝图
+    metadata:   #给生成的容器贴标签
+      labels:
+        app: devops-app   #这里必须和上面的 selector 对应上
+    spec:  #定义容器列表。这里只有一个容器，名字叫 app
+      containers:
+      - name: app
+        image: devops-demo:latest  #告诉 K8s，“去下载这个镜像来运行
+        ports:
+        - containerPort: 8080  #告诉 K8s，“我的程序在容器里面监听 8080 端口
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: devops-app-service ## ① 给这个“前台”起个名字
+spec:
+  type: NodePort
+  ports:
+  - port: 8080    ## ③ 服务端口：集群内部访问用的端口
+    targetPort: 8080  ## ④ 目标端口：Pod 里容器监听的端口
+    nodePort: 30080 ## ⑤ 节点端口：外部访问的“大门”端口
+  selector:   ## ⑥ 核心！选择器：决定哪些 Pod 归这个 Service 管
+    app: devops-app
