@@ -2,21 +2,20 @@ pipeline {
     agent any
 
     stages {
-        // ✅ 修改这里：让 Jenkins 自动使用当前拉取的代码，而不是写死的本地路径
         stage('Checkout') {
             steps {
                 echo '✅ 代码已从 GitHub 拉取到工作空间！'
-                sh 'pwd'          // 打印当前目录确认位置
-                sh 'ls -l'        // 列出文件，确认 Dockerfile 是否存在
-                // 不需要手动 git clone，Pipeline 模式会自动帮你做这一步
+                sh 'pwd'
+                sh 'ls -l'
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    // 注意：Jenkins 环境变量用 ${BUILD_ID} 不需要转义符 \
                     echo "Building image devops-demo:${BUILD_ID}"
+                    // ⚠️ 注意：这里单引号会导致 ${BUILD_ID} 不会被替换，变成 literal 字符串
+                    // 如果构建失败，请把单引号改为双引号："docker build ..."
                     sh 'docker build -t devops-demo:${BUILD_ID} .'
                 }
             }
@@ -27,8 +26,17 @@ pipeline {
                 sh 'docker tag devops-demo:${BUILD_ID} devops-demo:latest'
             }
         }
-    }
-    
+
+        // ✅ 修复：把这个 stage 移回 stages 的大括号里面
+        stage('Deploy to K3s') {
+            steps {
+                echo 'Deploying to Kubernetes...'
+                sh 'kubectl apply -f /root/CI-CD-test/deployment.yaml'
+                sh 'kubectl rollout status deployment/devops-app --timeout=60s'
+            }
+        } 
+    } // ✅ 修复：stages 在这里统一闭合
+
     post {
         always {
             echo '🏁 流水线执行结束'
