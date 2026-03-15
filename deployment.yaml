@@ -15,6 +15,7 @@ spec:    #规格说明 后面跟着的都是具体的要求细节
       containers:
       - name: app
         image: devops-demo:latest  #告诉 K8s，“去下载这个镜像来运行
+        imagePullPolicy: IfNotPresent  # <--- 加上这一行！关键！
         ports:
         - containerPort: 8080  #告诉 K8s，“我的程序在容器里面监听 8080 端口
 ---
