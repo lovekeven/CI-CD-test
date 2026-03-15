@@ -13,33 +13,47 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    echo "Building image devops-demo:${BUILD_ID}"
-                    // ⚠️ 注意：这里单引号会导致 ${BUILD_ID} 不会被替换，变成 literal 字符串
-                    // 如果构建失败，请把单引号改为双引号："docker build ..."
-                    sh 'docker build -t devops-demo:${BUILD_ID} .'
+                    // ✅ 修改：使用双引号 "..." 以便 ${BUILD_ID} 能被正确替换为数字
+                    def imageTag = "devops-demo:${BUILD_ID}"
+                    echo "Building image: ${imageTag}"
+                    sh "docker build -t ${imageTag} ."
                 }
             }
         }
 
         stage('Tag Latest') {
             steps {
-                sh 'docker tag devops-demo:${BUILD_ID} devops-demo:latest'
+                // ✅ 修改：同样使用双引号
+                sh "docker tag devops-demo:${BUILD_ID} devops-demo:latest"
             }
         }
 
-        // ✅ 修复：把这个 stage 移回 stages 的大括号里面
         stage('Deploy to K3s') {
             steps {
-                echo 'Deploying to Kubernetes...'
-                sh 'kubectl apply -f /root/CI-CD-test/deployment.yaml'
-                sh 'kubectl rollout status deployment/devops-app --timeout=60s'
+                echo '🚀 开始部署到 K3s 集群...'
+                
+                // ✅ 关键修改：
+                // 1. 使用三单引号 ''' 包裹多行命令
+                // 2. 第一行 export KUBECONFIG 指定配置文件路径
+                // 3. 使用 ./deployment.yaml (相对路径) 代替绝对路径，更稳健
+                sh '''
+                    export KUBECONFIG=/var/lib/jenkins/.kube/config
+                    kubectl apply -f ./deployment.yaml
+                    kubectl rollout status deployment/devops-app --timeout=60s
+                '''
             }
-        } 
-    } // ✅ 修复：stages 在这里统一闭合
+        }
+    }
 
     post {
         always {
             echo '🏁 流水线执行结束'
+        }
+        success {
+            echo '🎉 部署成功！'
+        }
+        failure {
+            echo '❌ 部署失败，请检查日志。'
         }
     }
 }
